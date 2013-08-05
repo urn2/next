@@ -35,6 +35,10 @@ class hHtml_table{
 		$this->filter =$Filter;
 		return $this;
 	}
+	public function flush($return =false){
+		if ($return) return (string)$this;
+		echo $this;
+	}
 	public function __toString(){
 		if (!is_array($this->data) || empty($this->data)){
 			$tr ="\t<tr><td>无数据</td></tr>\n";
