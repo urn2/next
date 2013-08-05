@@ -1,0 +1,26 @@
+<?php
+
+$config['default']=array(
+	'driver'=>'mysql',
+	'dsn'=>'mysql:host=localhost;dbname=test',
+	'user'=>'test',
+	'password'=>'',
+	'host'=>'localhost',
+	'dbname'=>'test'
+);
+$config['urn2']=array(
+	'driver'=>'mysql',
+	'dsn'=>'mysql:host=localhost;dbname=urn2',
+	'user'=>'root',
+	'password'=>'123456',
+	'host'=>'localhost',
+	'dbname'=>'urn2'
+);
+$config['autofly']=array(
+	'driver'=>'mysql',
+	'dsn'=>'mysql:host=localhost;dbname=af',
+	'user'=>'root',
+	'password'=>'123456',
+	'host'=>'localhost',
+	'dbname'=>'af'
+);
