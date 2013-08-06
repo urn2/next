@@ -24,22 +24,22 @@ class Controller{
 				$_fnc =self::doAfter . $name;
 				if (method_exists($this, $_fnc)) $this->$_fnc();
 			}
-		} elseif ($isAction) $this->on404($name);
+		} elseif ($isAction) $this->on404();
 	}
 	public function __call($m, $a){
 		Next::callEvent('system.404');
 	}
-	public static function on403($Info =NULL){
+	public function on403($Info =NULL){
 		header("HTTP/1.0 403 Forbidden");
 		$Info =is_null($Info) ? 'core.403_forbidden' : $Info;
 		die(Next::Language($Info));
 	}
-	public static function on404($Info =NULL){
+	public function on404($Info =NULL){
 		header("HTTP/1.0 404 Not Found");
 		$Info =is_null($Info) ? 'core.404_not_found' : $Info;
 		die(Next::Language($Info));
 	}
-	public static function redirect($Uri ='/', $Info =NULL, $Step =3){
+	public function redirect($Uri ='/', $Info =NULL, $Step =3){
 		header('Refresh: ' . $Step . '; url=' . $Uri);
 		$Info =is_null($Info) ? 'core.redirect' : $Info;
 		Next::$hasAction =false;

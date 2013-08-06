@@ -131,7 +131,7 @@ class hHtml_form{
 	private $Children;
 	private $hasSubmit =false;
 	public $Action;
-	public $Sets =array('caption' =>'', 'method' =>'post', 'class' =>'form');
+	public $Sets =array('method' =>'post', 'class' =>'form');
 	
 	private $NameP='';
 	
@@ -157,6 +157,7 @@ class hHtml_form{
 		if (!isset($this->Sets['name']) && isset($this->Sets['id'])) $this->Sets['name'] =$this->Sets['id'];
 		$this->NameP =(isset($this->Sets['name'])) ?$this->Sets['name'].'_' :'';
 		$this->CaptionP =(isset($this->Sets['name'])) ?$this->Sets['name'].'.' :'';
+		if (!isset($this->Sets['caption']) && isset($this->Sets['name'])) $this->Sets['caption'] =$this->CaptionP.'caption';
 		$this->hasSubmit =false;
 	}
 	private function Label($Caption, $Namefor =''){
@@ -186,7 +187,7 @@ class hHtml_form{
 		$this->Children('<span class="info">' . Next::Language($Info) . '</span>');
 		return $this;
 	}
-	public function File($Name, $Value, $Caption ='', $Rem =''){
+	public function File($Name, $Value='', $Caption ='', $Rem =''){
 		$this->Sets['enctype'] ='multipart/form-data';
 		$this->Children($this->Label($Caption, $Name), $this->Input('file', $Name, $Value), $Rem);
 		return $this;
@@ -275,7 +276,7 @@ class hHtml_form{
 		$this->Children($this->Label($Caption, $Name), implode("\n", $h), $Rem);
 		return $this;
 	}
-	public function Textarea($Name, $Value='', $Caption ='', $Rem ='', $Cols =60, $Rows =5){
+	public function Textarea($Name, $Value='', $Caption ='', $Rem ='', $Cols =30, $Rows =5){
 		$this->Children($this->Label($Caption, $Name), "<textarea id='{$this->NameP}{$Name}' name='{$this->NameP}{$Name}' size='400' cols='{$Cols}' rows='{$Rows}'>$Value</textarea>", $Rem);
 		return $this;
 	}
@@ -286,7 +287,7 @@ class hHtml_form{
 		}
 		$this->hasSubmit =true;
 		$_c =Next::Language($Caption);
-		$this->Children($_c, $this->Input('submit', $Name, Next::Language($Value)), $Rem);
+		$this->Children($_c, $this->Input('submit', $Name, Next::Language($this->CaptionP.$Value)), $Rem);
 		return $this;
 	}
 	public function Flush($Return =null){
@@ -371,9 +372,21 @@ class hHtml{
 	static public function Input($Type, $Name, $Value, $Attributes =false){
 		return "<input type='{$Type}' name='{$Name}' id='{$Name}' value='{$Value}'" . ((empty($Attributes)) ?'' :self::Attributes($Attributes)) . " />";
 	}
+	/**
+	 * 
+	 * @param string $Action
+	 * @param unknown $Sets
+	 * @return hHtml_form
+	 */
 	static public function Form($Action ='', $Sets =array()){
 		return new hHtml_form($Action, $Sets);
 	}
+	/**
+	 * 
+	 * @param unknown $Data
+	 * @param string $Title
+	 * @return hHtml_table
+	 */
 	static public function Table($Data, $Title =''){
 		return new hHtml_table($Data, $Title);
 	}
