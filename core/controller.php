@@ -5,7 +5,9 @@ class Controller{
 	const doBefore ='before';
 	const doAfter ='after';
 	public $do ='404';
+	public $route =array();
 	public function __construct($Route =array()){
+		$this->route =$Route;
 		$this->exec(self::doBefore, false);
 		$this->exec($Route[1]);
 	}
@@ -14,17 +16,14 @@ class Controller{
 	}
 	public function exec($name, $isAction =true){
 		if ($isAction){
-			$_fnc =self::doBefore . $name;
-			if (method_exists($this, $_fnc)) $this->$_fnc();
-		}
-		$_fnc =$isAction ? self::doExt . $name : $name;
-		if (method_exists($this, $_fnc)){
-			$this->$_fnc();
-			if ($isAction){
-				$_fnc =self::doAfter . $name;
-				if (method_exists($this, $_fnc)) $this->$_fnc();
-			}
-		} elseif ($isAction) $this->on404();
+			call_user_func(array($this, self::doBefore . $name));
+			if (method_exists($this, self::doExt . $name)){
+				call_user_func(array($this, self::doExt . $name));
+				call_user_func(array($this, self::doAfter . $name));
+			} else
+				$this->on404();
+		} else
+			call_user_func(array($this, $name));
 	}
 	public function __call($m, $a){
 		Next::callEvent('system.404');
