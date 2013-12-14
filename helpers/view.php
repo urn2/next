@@ -1,5 +1,4 @@
 <?php
-
 class hView{
 	public $Data =array();
 	private $Cache ='';
@@ -7,12 +6,12 @@ class hView{
 	private $CacheFile ='';
 	public $File ='';
 	/**
-	 * 
+	 *
 	 * 工厂模式
 	 * @param unknown_type $Template
 	 * @param unknown_type $Data
 	 * @param unknown_type $Cache
-	 * @param unknown_type $CacheCycle 
+	 * @param unknown_type $CacheCycle
 	 * @return hView
 	 */
 	public static function factory($Template ='', $Data =array(), $Cache ='', $CacheCycle =0){
@@ -23,7 +22,7 @@ class hView{
 		$this->Data =$Data;
 		$this->Cache =$Cache;
 		$this->CacheCycle =$CacheCycle;
-		$this->CacheFile =Next::AppPath() . Next::File($this->Cache, 'views/cache');
+		$this->CacheFile =next::$app->buffer['/'] . next::$app->_file($this->Cache, 'cache/views');
 	}
 	public function __destruct(){}
 	public function __set($Nm, $Val){
@@ -51,79 +50,54 @@ class hView{
 		if (is_array($Data)) $this->Data =array_merge($Data, $this->Data);
 	}
 	public function HasCache(){
-		return empty($this->Cache['name']) ?false :(is_file($this->CacheFile) && ($this->CacheCycle === true || (filemtime($this->CacheFile) > time() - $this->CacheCycle)));
+		return empty($this->Cache) ? false : (is_file($this->CacheFile) && ($this->CacheCycle === true || (filemtime($this->CacheFile) > time() - $this->CacheCycle)));
 	}
 	/**
-	 * 
 	 *
 	 * @param boolean $Return
 	 * @return string
 	 */
 	public function FlushCache($Return =false){
-		$_benchmark ='_benchmark_cache,' . $this->Cache;
-		Next::Benchmark($_benchmark);
-		$_f =file_get_contents($this->CacheFile) . Next::Language('core.cache_time', date('Y-m-d H:i:s', filemtime($this->CacheFile)));
+		$_f =file_get_contents($this->CacheFile) . next::i18n('core.template-cache-time', date('Y-m-d H:i:s', filemtime($this->CacheFile)));
 		if (!$Return){
 			echo $_f;
-			Next::$Caches['views']['has'] =true;
-			Next::Benchmark($_benchmark, true);
 			return;
 		}
-		Next::Benchmark($_benchmark, true);
 		return $_f;
 	}
 	/**
-	 * 
 	 *
-	 * @param boolean $Return 
+	 * @param boolean $Return
 	 * @return string
 	 */
 	public function Flush($Return =false){
-		$_benchmark ='_benchmark_view,' . $this->File;
 		try{
-			Next::$Caches['views']['in'] =true;
-			if ($this->HasCache()){
-				Next::$Caches['views']['in'] =false;
-				return $this->FlushCache($Return);
-			}
-			Next::Benchmark($_benchmark);
-			if (!$f =Next::Path($this->File, 'views')){
-				Next::$Caches['views']['in'] =false;
+			if ($this->HasCache()) return $this->FlushCache($Return);
+			if (!$f =next::$app->_path($this->File, 'views')){
 				if (!$Return){
-					Next::$Caches['views']['has'] =true;
-					echo Next::Language('core.no_template', $this->File);
+					echo next::i18n('core.template-no-found', $this->File);
 					return;
-				} else
-					Next::Language('core.no_template', $this->File);
+				} else return next::i18n('core.template-no-found', $this->File);
 			}
 			extract($this->Data, EXTR_REFS);
 			ob_start();
 			include ($f);
 			$r =ob_get_contents();
 			ob_end_clean();
-			if (!empty($this->Cache) && $f =fopen($this->CacheFile, 'w')){
-				fwrite($f, $r);
-				fclose($f);
-			}
-			Next::$Caches['views']['in'] =false;
+
+			if (!empty($this->Cache)) file_put_contents($this->CacheFile, $r);
 			if (!$Return){
-				Next::$Caches['views']['has'] =true;
 				echo $r;
-				Next::Benchmark($_benchmark, true);
-				return;
-			} else{
-				Next::Benchmark($_benchmark, true);
-				return $r;
-			}
-		} catch (Exception $e){
-			Next::Dump($e);
-			Next::$Caches['views']['in'] =false;
-			if (!$Return){
-				Next::$Caches['views']['has'] =true;
-				echo Next::Language('error_in_template', $f);
 				return;
 			} else
-				return Next::Language('error_in_template', $f);
+				return $r;
+		} catch (Exception $e){
+			vFL::out($e);
+			if (!$Return){
+				echo next::i18n('template-has-error', $f);
+				return;
+			} else
+				return next::i18n('template-has-error', $f);
 		}
 	}
 }

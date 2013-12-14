@@ -17,6 +17,11 @@ class hImage{
 		if (!is_null($this->Canvas)) imagedestroy($this->Canvas);
 	}
 
+	public static function factory(){
+		return new self;
+
+	}
+
 	public function render(){
 		if (!empty($this->Error)) return $this->Error;
 	}
@@ -56,21 +61,37 @@ class hImage{
 	 * @param unknown_type $File
 	 * @return hImage
 	 */
-	public function loadFrom($File){
-		$_ext =explode('.', $File);
-		$_ext =$_ext[count($_ext) -1];
+	public function loadFrom($File, $type=''){
+		if(empty($type)){
+			$_ext =explode('.', $File);
+			$_ext =$_ext[count($_ext) -1];
+		} else $_ext =$type;
 		switch ($_ext){
 			case 'jpg':
 			case 'jpeg':
+			case "image/jpeg":
 				$this->Canvas =imagecreatefromjpeg($File);
 				break;
 			case 'png':
+			case "image/png":
 				$this->Canvas =imagecreatefrompng($File);
 				break;
 			case 'gif':
+			case "image/gif":
 				$this->Canvas =imagecreatefromgif($File);
 				break;
+			default:
+				$this->Canvas =imagecreatefromstring($File);
+				break;
 		}
+		return $this;
+	}
+
+	public function Cut($Box){
+		$im =imagecreatetruecolor($Box['width'], $Box['height']);
+		imagecopy($im, $this->Canvas, 0, 0, $Box['left'], $Box['top'], $Box['width'], $Box['height']);
+		imagedestroy($this->Canvas);
+		$this->Canvas =$im;
 		return $this;
 	}
 
@@ -82,10 +103,10 @@ class hImage{
 			} else
 				$MaxY =$MaxX;
 		}
-		
+
 		$ix =imagesx($this->Canvas);
 		$iy =imagesy($this->Canvas);
-		
+
 		if ($ix <=$MaxX &&$iy <=$MaxY) return $this;
 		if ($ix >=$iy){
 			$x =$MaxX;
@@ -94,11 +115,14 @@ class hImage{
 			$y =$MaxY;
 			$x =$ix /$iy *$y;
 		}
-		
 		$nc =imagecreatetruecolor($x, $y);
-		imagecopyresized($nc, $this->Canvas, 0, 0, 0, 0, floor($x), floor($y), $ix, $iy);
+		//imagecopyresized($nc, $this->Canvas, 0, 0, 0, 0, floor($x), floor($y), $ix, $iy);
+		imagecopyresampled($nc, $this->Canvas, 0, 0, 0, 0, floor($x), floor($y), $ix, $iy);
 		imagedestroy($this->Canvas);
 		$this->Canvas =$nc;
 		return $this;
+	}
+	public function getWH(){
+		return array('width'=>imagesx($this->Canvas), 'height'=>imagesy($this->Canvas));
 	}
 }

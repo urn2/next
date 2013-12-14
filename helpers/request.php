@@ -92,7 +92,7 @@ class hRequest{
 			foreach ($Param as $name =>$type){
 				if (is_numeric($name)){
 					$name =$type;
-					$type =type::str;
+					$type =1;
 				}
 				$result[$name] =self::_fiter($_POST[$Prefix . $name], $type);
 			}
@@ -101,7 +101,7 @@ class hRequest{
 	}
 	private static function _fiter($Value, $Type){
 		switch ($Type){
-		case type::Integer:
+		case 0:
 			return (int)$Value;
 			break;
 		default:
@@ -109,7 +109,7 @@ class hRequest{
 			break;
 		}
 	}
-	
+
 	public static function PostInt($Param =NULL, $Default =NULL){
 		return (int)self::Post($Param, $Default);
 	}
@@ -166,7 +166,8 @@ class hRequest{
 	public static function Pathinfo(){
 		if (!empty($_SERVER['PATH_INFO'])) return $_SERVER['PATH_INFO'];
 		if (($uri =self::Uri()) === null) return '';
-		if ($pos =strpos($uri, '?')) $uri =substr($uri, 0, $pos);
+		$pos =strpos($uri, '?');
+		if ($pos!==false) $uri =substr($uri, 0, $pos);
 		return $uri;
 	}
 	public static function Referer(){

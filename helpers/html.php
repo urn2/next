@@ -10,10 +10,10 @@ class hHtml_table{
 		if(is_string($Sets)) $caption =$Sets;
 		else{
 			$this->set['namep'] =isset($Sets['name']) ?$Sets['name'] .'.' :'';
-			if(!empty($Sets['caption'])) $caption =app::Language($Sets['caption']);
+			if(!empty($Sets['caption'])) $caption =next::i18n($Sets['caption']);
 			elseif(isset($Sets['name'])){
 				$_cp =$this->set['namep'] .'caption';
-				$caption =app::Language($_cp);
+				$caption =next::i18n($_cp);
 				if($_cp ==$caption) $caption ='';
 			}
 		}
@@ -63,9 +63,9 @@ class hHtml_table{
 					if(isset($_row[$col]) ||isset($_suffix[$col])) $_colfor[$col] =hHtml_form::Language(isset($this->column[$_namep .$col]) ?$this->column[$_namep .$col] :$col);
 				}
 				foreach($_row as $col=>$set)
-					$_colfor[$col] =hHtml_form::Language(isset($this->column[$_namep .$col]) ?$this->column[$_namep .$col] :$col);
+					$_colfor[$col] =next::i18n(isset($this->column[$_namep .$col]) ?$this->column[$_namep .$col] :$col);
 				foreach($_suffix as $col=>$set)
-					$_colfor[$col] =hHtml_form::Language(isset($this->column[$_namep .$col]) ?$this->column[$_namep .$col] :$col);
+					$_colfor[$col] =next::i18n(isset($this->column[$_namep .$col]) ?$this->column[$_namep .$col] :$col);
 				$_col_max =count($_colfor);
 				$th ="\t<tr>\n\t\t<th>" .implode("</th>\n\t\t<th>", $_colfor) ."</th>\n\t</tr>";
 			}else{
@@ -100,21 +100,7 @@ class hHtml_table{
 						$r =preg_replace('/(\[([._a-zA-Z0-9]*)\])/', '{\$row["\\2"]}', $r);
 						@eval("\$r =\"$r\";");
 						eval("\$r =$r;");
-						// $r = (isset ( $this->filter [$col] ) && is_callable ( $this->filter [$col] )) ? call_user_func ( $this->filter [$col], $r, $col ) : $r;
 						$td[$col] =($r !=='') ?$r :'&nbsp;';
-						
-						/*
-						if(isset($this->suffix[$col])){
-							$r =$this->suffix[$col];
-							$r =preg_replace('/\'(\[([._a-zA-Z0-9]*)\])\'/', '\$row["\\2"]', var_export($r, true));
-							$r =preg_replace('/(\[([._a-zA-Z0-9]*)\])/', '{\$row["\\2"]}', $r);
-							@eval("\$r =\"$r\";");
-							eval("\$r =$r;");
-						}else
-							$r =$row[$col];
-						$r =(isset($this->filter[$col]) &&is_callable($this->filter[$col])) ?call_user_func($this->filter[$col], $r, $col) :$r;
-						$td[$col] =($r !=='') ?$r :'&nbsp;';
-						*/
 					}
 					$tr[] ="\t<tr>\n\t\t<td>" .implode("</td>\n\t\t<td>", $td) ."</td>\n\t</tr>";
 				}
@@ -136,24 +122,23 @@ class hHtml_form{
 	public static function Language($KeyWord){
 		if(is_array($KeyWord)) return $KeyWord;
 		if(strpos($KeyWord, '.') ==false) return $KeyWord;
-		return Next::Language($KeyWord);
+		return next::i18n($KeyWord);
 	}
 	/**
 	 * 创建一个表单类
-	 * 
+	 *
 	 * @param string $Action
 	 *        	提交链接
 	 * @param array $Sets
 	 *        	= [caption][id][method][name] 表单设定内容
 	 */
 	public function __construct($Action ='', $Sets =array()){
-		Next::Benchmark('_html_form');
 		$this->Action =$Action;
 		$this->Sets['action'] =$Action;
 		if(is_array($Sets) &&count($Sets) >0){
 			foreach($Sets as $k=>$v)
 				$this->Sets[$k] =$v;
-		}elseif(is_string($Sets)) $this->Sets['caption'] =Next::Language($Sets);
+		}elseif(is_string($Sets)) $this->Sets['caption'] =next::i18n($Sets);
 		if(!isset($this->Sets['name']) &&isset($this->Sets['id'])) $this->Sets['name'] =$this->Sets['id'];
 		$this->NameP =(isset($this->Sets['name'])) ?$this->Sets['name'] .'_' :'';
 		$this->CaptionP =(isset($this->Sets['name'])) ?$this->Sets['name'] .'.' :'';
@@ -164,7 +149,7 @@ class hHtml_form{
 		if($Caption ==''){
 			$Caption =$this->CaptionP .$Namefor;
 		}
-		$_c =Next::Language($Caption);
+		$_c =next::i18n($Caption);
 		$Namefor =$this->NameP .$Namefor;
 		return "<label for='{$Namefor}'>{$_c}</label>";
 	}
@@ -174,7 +159,7 @@ class hHtml_form{
 	private function Children($Caption, $Input ='', $Rem =''){
 		if(empty($Input)) $this->Children[] =array($Caption);
 		else{
-			if(!empty($Rem)) $Rem ='<span>' .Next::Language($Rem) .'</span>';
+			if(!empty($Rem)) $Rem ='<span>' .next::i18n($Rem) .'</span>';
 			$this->Children[] =array($Caption,$Input,$Rem);
 		}
 	}
@@ -183,7 +168,7 @@ class hHtml_form{
 		return $this;
 	}
 	public function Info($Info){
-		$this->Children('<span class="info">' .Next::Language($Info) .'</span>');
+		$this->Children('<span class="info">' .next::i18n($Info) .'</span>');
 		return $this;
 	}
 	public function File($Name, $Value ='', $Caption ='', $Rem =''){
@@ -210,7 +195,7 @@ class hHtml_form{
 				$sCaption =$o;
 			}
 			// $bysel = (!is_null($Sel) && $sValue == $Sel)? " checked='checked'":'';
-			$sCaption =Next::Language($sCaption);
+			$sCaption =next::i18n($sCaption);
 			$h[] ="\t";
 			$h[] =$this->Input('radio', $Name, $sValue, (!is_null($Sel) &&$sValue ==$Sel) ?array('checked' =>'checked') :array());
 			$h[] ="&nbsp;{$sCaption}\n";
@@ -230,7 +215,7 @@ class hHtml_form{
 				$sCaption =$o;
 			}
 			$bysel =(!is_null($Sel) &&$sValue ==$Sel) ?" checked='checked'" :'';
-			$sCaption =Next::Language($sCaption);
+			$sCaption =next::i18n($sCaption);
 			$h[] ="\t";
 			$h[] =$this->Input('checkbox', $Name .'[]', $sValue, (!is_null($Sel) &&$sValue ==$Sel) ?array('checked' =>'checked') :array());
 			$h[] ="&nbsp;{$sCaption}\n";
@@ -254,7 +239,7 @@ class hHtml_form{
 				$sCaption =$o;
 			}
 			$bysel =(!is_null($Sel) &&$sValue ==$Sel) ?" selected='selected'" :'';
-			$sCaption =Next::Language($sCaption);
+			$sCaption =next::i18n($sCaption);
 			if($hasGroup &&$og !=='' &&$og !==$o[$Groupid]){
 				$h[] ="\t</optgroup>";
 				$og ="";
@@ -283,14 +268,14 @@ class hHtml_form{
 			$Name ='submit';
 		}
 		$this->hasSubmit =true;
-		$_c =Next::Language($Caption);
-		$this->Children($_c, $this->Input('submit', $Name, Next::Language($this->CaptionP .$Value)), $Rem);
+		$_c =next::i18n($Caption);
+		$this->Children($_c, $this->Input('submit', $Name, next::i18n($this->CaptionP .$Value)), $Rem);
 		return $this;
 	}
 	public function Flush($Return =null){
 		if(!$this->hasSubmit) $this->Submit('提交');
 		$class =$this->Sets['class'];
-		$caption =Next::Language($this->Sets['caption']);
+		$caption =isset($this->Sets['caption']) ? next::i18n($this->Sets['caption']) :'';
 		unset($this->Sets['class'], $this->Sets['caption']);
 		$h =array();
 		$h[] ="<form";
@@ -309,7 +294,6 @@ class hHtml_form{
 		}
 		$h[] ="</fieldset>";
 		$h[] ="</form>";
-		Next::Benchmark('_html_form', true);
 		if($Return) return implode("\n", $h);
 		else echo implode("\n", $h);
 		return true;
@@ -317,7 +301,7 @@ class hHtml_form{
 	public function Table($Return =null){
 		if(!$this->hasSubmit) $this->Submit('提交');
 		$class =$this->Sets['class'];
-		$caption =Next::Language($this->Sets['caption']);
+		$caption =next::i18n($this->Sets['caption']);
 		unset($this->Sets['class'], $this->Sets['caption']);
 		$h ="<form"; // method='{$this->Sets['method']}' action='{$this->Action}' name='{$this->Sets['name']}' id='{$this->Sets['id']}' enctype='multipart/form-data'>";
 		foreach($this->Sets as $n=>$v){
@@ -333,13 +317,83 @@ class hHtml_form{
 		 * $h .=hHtml::Table($this->Children, array( 'col' =>false, 'title' =>$caption, $class), true);
 		 */
 		$h .="</form>\n";
-		Next::Benchmark('_html_form', true);
 		if($Return) return $h;
 		else echo $h;
 		return true;
 	}
 }
+
+class Html_tag{
+	private $name=null;
+	private $attr=array();
+	private $html=null;
+	private $sub=array();
+	public $lv=0;
+	function __construct($name){
+		$this->name =$name;
+	}
+	function append($sub){
+		$sub->lv =$this->lv+1;
+		$this->sub[] =$sub;
+		return $this;
+	}
+	function appendTo($parent){
+		if (is_a($parent, __CLASS__)){
+			$parent->append($this);
+		}
+		return $this;
+	}
+	function data($name, $value=null){
+		return $this->attr($name, $value, 'data-');
+	}
+	function attr($name, $value=null, $pref=''){
+		if (is_null($value)){
+			if(is_array($name)){
+				foreach ($name as $key => $value) {
+					$this->attr[$pref.$key] =$value;
+				}
+			} else if(is_string($pref.$name)) return $this->attr[$pref.$name];
+		} else $this->attr[$pref.$name] =$value;
+		return $this;
+	}
+	function html($str){
+		$this->sub=array();
+		$this->sub[] =$str;
+		return $this;
+	}
+	function _attr($attr){
+		if(count($attr) ==0) return null;
+		$_attr =array();
+		foreach ($attr as $key => $value) {
+			$_attr[] =$key.'="'.$value.'"';
+		}
+		$_attr =implode(' ', $_attr);
+		strlen($_attr) && $_attr=' '.$_attr;
+		return $_attr;
+	}
+	function _sub($sub){
+		if(count($sub) ==0) return null;
+		$_sub =implode("\n", $sub);
+		is_a($sub[0], __CLASS__) && $_sub="\n".$_sub;
+		return $_sub;
+	}
+	function __toString(){
+		$_attr=$this->_attr($this->attr);
+		$_html=$this->_sub($this->sub);
+		is_null($_attr) &&$_attr='';
+		$_pref=str_repeat("\t", $this->lv);
+		$_pref2=is_a($this->sub[0], __CLASS__) ?"\n".$_pref :'';
+		return $_pref.'<'.$this->name.$_attr.(is_null($_html) ?'/>' :'>'.$_html.$_pref2.'</'.$this->name.'>');
+	}
+}
+
 class hHtml{
+	static public function tag($name, $attr=array()){
+		return new Html_tag($name);
+	}
+	static public function Drop($class="drop"){
+		return "<div class='{$class}'></div>";
+	}
 	/**
 	 * 生成链接字符串
 	 *
@@ -352,7 +406,7 @@ class hHtml{
 	 * @return string
 	 */
 	static public function Anchor($Uri, $Title =false, $Attributes =false){
-		return "<a href='{$Uri}'" .((empty($Attributes)) ?'' :self::Attributes($Attributes)) .'>' .((empty($Title)) ?$Uri :Next::Language($Title)) .'</a>';
+		return "<a href='{$Uri}'" .((empty($Attributes)) ?'' :self::Attributes($Attributes)) .'>' .((empty($Title)) ?$Uri :next::i18n($Title)) .'</a>';
 	}
 	static public function Attributes($Args){
 		if(empty($Args)) return '';
@@ -368,8 +422,8 @@ class hHtml{
 	}
 	/**
 	 *
-	 * @param string $Action        	
-	 * @param unknown $Sets        	
+	 * @param string $Action
+	 * @param unknown $Sets
 	 * @return hHtml_form
 	 */
 	static public function Form($Action ='', $Sets =array()){
@@ -377,8 +431,8 @@ class hHtml{
 	}
 	/**
 	 *
-	 * @param unknown $Data        	
-	 * @param string $Title        	
+	 * @param unknown $Data
+	 * @param string $Title
 	 * @return hHtml_table
 	 */
 	static public function Table($Data, $Title =''){
@@ -410,7 +464,7 @@ class hHtml{
 		if($info ==''){
 			$info =$uri;
 		}
-		$v =Next::View('redirect.tpl', array('uri' =>$uri,'info' =>$info), true);
+		//$v =Next::View('redirect.tpl', array('uri' =>$uri,'info' =>$info), true);
 		if(!empty($ASTO)){
 			if(is_array($ASTO)){
 				$_h =array();
