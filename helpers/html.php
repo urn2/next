@@ -141,7 +141,7 @@ class hHtml_form{
 		}elseif(is_string($Sets)) $this->Sets['caption'] =next::i18n($Sets);
 		if(!isset($this->Sets['name']) &&isset($this->Sets['id'])) $this->Sets['name'] =$this->Sets['id'];
 		$this->NameP =(isset($this->Sets['name'])) ?$this->Sets['name'] .'_' :'';
-		$this->CaptionP =(isset($this->Sets['name'])) ?$this->Sets['name'] .'.' :'';
+		$this->CaptionP =(isset($this->Sets['name'])) ?$this->Sets['name'] .'.' :'form.';
 		if(!isset($this->Sets['caption']) &&isset($this->Sets['name'])) $this->Sets['caption'] =$this->CaptionP .'caption';
 		$this->hasSubmit =false;
 	}
@@ -273,7 +273,12 @@ class hHtml_form{
 		return $this;
 	}
 	public function Flush($Return =null){
-		if(!$this->hasSubmit) $this->Submit('提交');
+		if($Return) return $this->__toString();
+		else echo $this->__toString();
+		return true;
+	}
+	public function __toString(){
+		if(!$this->hasSubmit) $this->Submit('submit');
 		$class =$this->Sets['class'];
 		$caption =isset($this->Sets['caption']) ? next::i18n($this->Sets['caption']) :'';
 		unset($this->Sets['class'], $this->Sets['caption']);
@@ -294,9 +299,7 @@ class hHtml_form{
 		}
 		$h[] ="</fieldset>";
 		$h[] ="</form>";
-		if($Return) return implode("\n", $h);
-		else echo implode("\n", $h);
-		return true;
+		return implode("\n", $h);
 	}
 	public function Table($Return =null){
 		if(!$this->hasSubmit) $this->Submit('提交');
@@ -490,116 +493,5 @@ class hHtml{
 		die($v);
 		// Last resort, exit and display the URL
 		// die('<a href="'.$uri.'">'.$info.'</a>');
-	}
-	/**
-	 * 创建一个表格代码
-	 *
-	 * @param array $Data
-	 *        	表格中显示的数据
-	 * @param array $Sets
-	 *        	表格的设置
-	 * @param boolean $Return
-	 *        	是否直接输出
-	 * @return string 返回的表格html代码
-	 */
-	static public function TableX($Data, $Sets =array(), $Return =null){
-		if(!function_exists('TableValueFilter')){
-			function TableValueFilter($Value, $Col){
-				$r =$Value;
-				if(is_array($Col)){
-					if(isset($Col[$Value])){
-						$r =$Col[$Value];
-					}
-				}else{
-					if(strpos($Col, '时间') !==false &&(int)$Value !=0) $r =date('y/m/d H:i', (int)$Value);
-					elseif(strpos($Col, '日期') !==false &&(int)$Value !=0) $r =date('y/m/d', (int)$Value);
-					elseif(strpos($Col, '是否') !==false &&((int)$Value ==0 ||(int)$Value ==1)) $r =(int)$Value ==0 ?'否' :'是';
-					elseif($Col =='结果' &&((int)$Value ==0 ||(int)$Value ==1)) $r =(int)$Value ==0 ?'失败' :'成功';
-					elseif(strpos($Col, '链接地址') !==false) $r ="<a href='{$Value}' target='_blank'>{$Value}</a>";
-					elseif(strpos($Col, '图片地址') !==false) $r ="<img src='{$Value}' width='100' />";
-					elseif(strpos($Col, '缩略图地址') !==false) $r ="<img src='{$Value}' width='50' />";
-				}
-				return $r;
-			}
-		}
-		$def =array('col' =>array(),'title' =>'','suffix' =>array(),'class' =>'table','filter' =>'TableValueFilter','row2col' =>true);
-		// col 列标题 title 表格标题 suffix 后缀格子 class css样式名 filter 过滤器 row2col 单列转行显示
-		$Sets =array_merge($def, $Sets); // 处理默认
-		$Col =$Sets['col'];
-		$Title =$Sets['title'];
-		$Suffix =$Sets['suffix'];
-		$Filter =$Sets['filter'];
-		$tt ='';
-		$maxcol =1;
-		$__Col =isset($Data[0]) ?$Data[0] :0;
-		if(!is_array($Data) or !count($Data) >0){ // 无数据
-			$tr ="\t<tr><td>无数据</td></tr>\n";
-		}else{
-			if(!is_array($Data[0]) &&$Sets['row2col']) $Data =array($Data); // 单列数据转化为单行显示
-			                                                                  // 计算总列数 遍历所有行
-			foreach($Data as $row){
-				if($Col !==false){
-					foreach($Col as $key=>$visable){
-						if($visable ==false) unset($row[$key]);
-					}
-				}
-				if($maxcol <count($row)){
-					$__Col =$row;
-					$maxcol =count($row);
-				}
-			}
-			$maxcol =$maxcol +count($Suffix);
-			// $maxcol =count($row_keys);//列数简便算法
-			if($Col !==false){ // 处理表头
-			                     // $row_0 =(count($Data[0]) ==1) ?$Col :$Data[0];//实际显示表头
-				$row_0 =$__Col; // 实际显示表头
-				foreach($Col as $key=>$visable)
-					if($visable ==false) unset($row_0[$key]); // 设定隐藏
-				$_col =$row_keys =array_keys($row_0); // 获取第一列中所有的key array(key=>value)
-				foreach($row_keys as $i=>$key)
-					$_col[$i] =isset($Col[$key]) ?(is_array($Col[$key]) ?$Col[$key]['_caption'] :$Col[$key]) :$key; // 如果不存在设定表头内容即显示默认key
-				if(count($Suffix) >0) foreach($Suffix as $key=>$v)
-					$_col[] =$key; // 附加后缀表头
-				$tt ="\t<tr>\n\t\t<th>" .implode("</th>\n\t\t<th>", $_col) ."</th>\n\t</tr>";
-			}else{
-				$row_0 =$__Col; // 实际显示表头
-				$row_keys =array_keys($row_0); // 获取第一列中所有的key array(key=>value)
-			}
-			// 显示每行
-			$tr =array();
-			$odd =false;
-			foreach($Data as $row){
-				// $odd =! $odd;
-				$_tr_style =($odd) ?" class='odd'" :'';
-				// 处理每列
-				if(count($row) ==1){
-					reset($row);
-					$tr[] ="\t<tr{$_tr_style}>\n\t\t<td colspan='{$maxcol}'>" .current($row) ."</td>\n\t</tr>";
-				}elseif(count($row) ==0){
-					// $tr[] ="<tr><td colspan='{$maxcol}'>&nbsp;</td></tr>";
-				}else{
-					$td =array();
-					foreach($row_keys as $key){
-						$value =call_user_func($Filter, isset($row[$key]) ?$row[$key] :'', isset($Col[$key]) ?$Col[$key] :'');
-						$td[$key] =($value !=='') ?$value :'&nbsp;';
-					}
-					if(count($Suffix) >0){
-						foreach($Suffix as $k=>$s){
-							$r =preg_replace("/(\[([_a-zA-Z0-9]*)\])/", '{\$row["\\2"]}', $s);
-							eval("\$r =\"$r\";");
-							$value =call_user_func($Filter, $r, $k);
-							$td[$k] =(!empty($value)) ?$value :'&nbsp;';
-						}
-					}
-					$tr[] ="\t<tr{$_tr_style}>\n\t\t<td>" .implode("</td>\n\t\t<td>", $td) ."</td>\n\t</tr>";
-				}
-			}
-			$tr =implode("\n", $tr);
-		}
-		$t =(strlen($Title) >0) ?"	<caption>$Title</caption>\n" :'';
-		$h ="\n<table class='{$Sets['class']}' border='0' cellpadding='0' cellspacing='0'>\n{$t}\n<thead>\n{$tt}\n</thead>\n{$tr}\n</table>\n";
-		if($Return) return $h;
-		else echo $h;
-		return true;
 	}
 }

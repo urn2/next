@@ -1,15 +1,14 @@
 <?php
+
 if (class_exists("SQLite3")){
 		class hdb_sqlite_base{
-			var $extension = "SQLite3", $server_info, $affected_rows, $errno, $error, $_link;
+			var $extension = "SQLite3", $server_info, $affected_rows, $errno, $error, $_link, $connect_error='';
 
-			public function __construct($Config){
-				//$filename=$Config['file'];
-				//var_dump($filename);
 
+			function connect2($Config){
+				return $this->connect($Config['file']);
 			}
-			function connect($Config){
-				$filename=$Config['file'];
+			function connect($filename, $flags = null, $encryption_key = null){
 				$this->_link = new SQLite3($filename);
 				$version = $this->_link->version();
 				$this->server_info = $version["versionString"];
@@ -18,16 +17,15 @@ if (class_exists("SQLite3")){
 			function query($query) {
 				$result = @$this->_link->query($query);
 				$this->error = "";
+				$this->affected_rows = $this->_link->changes();
+				$this->insert_id =$this->_link->lastInsertRowID();
 				if (!$result) {
 					$this->errno = $this->_link->lastErrorCode();
 					$this->error = $this->_link->lastErrorMsg();
 					return false;
-				} elseif ($result->numColumns()) {
+				} elseif ($result->numColumns()){
 					return new hdb_sqlite_result_1($result);
 				}
-				$this->error =$this->_link->lastErrorMsg();
-				$this->affected_rows = $this->_link->changes();
-				$this->insert_id =$this->_link->lastInsertRowID();
 				return true;
 			}
 
@@ -55,6 +53,7 @@ if (class_exists("SQLite3")){
 
 			function __construct($result) {
 				$this->_result = $result;
+				$this->num_rows =$this->_result->numColumns();
 			}
 
 			function fetch_all(){
@@ -185,20 +184,21 @@ if (class_exists("SQLite3")){
 			$filename=$Config['file'];
 			$this->dsn(DRIVER . ":$filename", "", "");
 		}
+
+		function connect2($Config){
+			//$this->config =$Config;
+			return $this->select_db($Config['file']);
+		}
 	}
 
 }
 
 if (class_exists("hdb_sqlite_base")) {
 	class hdb_sqlite extends hdb_sqlite_base {
-		function __construct($Config) {
-			//$this->hdb_sqlite_base(":memory:");
-			$this->config =$Config;
-		}
 
 		function select_db($filename=null) {
-			if(is_null($filename)) $filename =$this->config['file'];
-			if (is_readable($filename) && $this->query("ATTACH " . $this->quote(ereg("(^[/\\\\]|:)", $filename) ? $filename : dirname($_SERVER["SCRIPT_FILENAME"]) . "/$filename") . " AS a")) { // is_readable - SQLite 3
+			//if(is_null($filename)) $filename =$this->config['file'];
+			if (is_readable($filename) && $this->query("ATTACH " . $filename . " AS a")) { // is_readable - SQLite 3
 				$this->hdb_sqlite_base($filename);
 				return true;
 			}

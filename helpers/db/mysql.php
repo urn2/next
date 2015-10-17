@@ -6,20 +6,19 @@ if (extension_loaded("mysqli")) {
 		public function __construct(){
 			parent::init();
 		}
-
-		function connect($Config){
-			$server=$Config['host'];
-			$username=$Config['user'];
-			$password=$Config['password'];
-			mysqli_report(MYSQLI_REPORT_OFF); // stays between requests, not required since PHP 5.3.4
+		function connect2($Config){
+			return $this->connect($Config['host'], $Config['user'], $Config['password'], $Config['db']);
+		}
+		function connect($server = NULL, $user = NULL, $password = NULL, $database = NULL, $port = NULL, $socket = NULL){
+			//mysqli_report(MYSQLI_REPORT_OFF); // stays between requests, not required since PHP 5.3.4
 			//list($host, $port)
 			$r = explode(":", $server, 2); // part after : is used for port or socket
-			$host =$r[0];
+			$server =$r[0];
 			$port =(isset($r[1])) ?$r[1] :null;
 			$return = @$this->real_connect(
-				($server != "" ? $host : ini_get("mysqli.default_host")),
-				($server . $username != "" ? $username : ini_get("mysqli.default_user")),
-				($server . $username . $password != "" ? $password : ini_get("mysqli.default_pw")),
+				($server != "" ? $server : ini_get("mysqli.default_host")),
+				($server . $user != "" ? $user : ini_get("mysqli.default_user")),
+				($server . $user . $password != "" ? $password : ini_get("mysqli.default_pw")),
 				null,
 				(is_numeric($port) ? $port : ini_get("mysqli.default_port")),
 				(!is_numeric($port) ? $port : null)
@@ -44,7 +43,8 @@ if (extension_loaded("mysqli")) {
 		}
 
 		function quote($string) {
-			return "'" . $this->escape_string($string) . "'";
+			return "'" . $string . "'";
+			//return "'" . $this->escape_string($string) . "'";
 		}
 	}
 
@@ -65,14 +65,14 @@ if (extension_loaded("mysqli")) {
 		 * @param string
 		 * @return bool
 		 */
-		function connect($Config){
-			$server=$Config['host'];
-			$username=$Config['user'];
-			$password=$Config['password'];
+		function connect2($Config){
+			return $this->connect($Config['host'], $Config['user'], $Config['password']);
+		}
+		function connect($host = NULL, $user = NULL, $password = NULL, $database = NULL, $port = NULL, $socket = NULL){
 			$this->_link = @mysql_connect(
-				($server != "" ? $server : ini_get("mysql.default_host")),
-				("$server$username" != "" ? $username : ini_get("mysql.default_user")),
-				("$server$username$password" != "" ? $password : ini_get("mysql.default_password")),
+				($host != "" ? $host : ini_get("mysql.default_host")),
+				("$host$user" != "" ? $user : ini_get("mysql.default_user")),
+				("$host$user$password" != "" ? $password : ini_get("mysql.default_password")),
 				true,
 				131072 // CLIENT_MULTI_RESULTS for CALL
 			);
@@ -214,11 +214,11 @@ if (extension_loaded("mysqli")) {
 	class hdb_mysql extends hdb_pdo {
 		var $extension = "PDO_MySQL";
 
-		function connect($Config){
-			$server=$Config['host'];
-			$username=$Config['user'];
-			$password=$Config['password'];
-			$this->dsn("mysql:host=" . str_replace(":", ";unix_socket=", preg_replace('~:(\\d)~', ';port=\\1', $server)), $username, $password);
+		function connect2($Config){
+			return $this->connect($Config['dsn'], $Config['user'], $Config['password']);
+		}
+		function connect($host = NULL, $user = NULL, $password = NULL, $database = NULL, $port = NULL, $socket = NULL){
+			$this->dsn("mysql:host=" . str_replace(":", ";unix_socket=", preg_replace('~:(\\d)~', ';port=\\1', $host)), $user, $password);
 			$this->query("SET NAMES utf8"); // charset in DSN is ignored
 			return true;
 		}

@@ -1,151 +1,212 @@
 <?php
+
 class app{
-	public $options =array(
-		'i18n' =>'zh_cn',
-		'path' =>array(
-			'c' =>'controllers',
-			'm' =>'models',
-			'l' =>'libraries',
-			'h' =>'helpers',
-			'v' =>'vendors'));
-	public $route =array();
-	public $hook =array();
-	public $controllers =array();
-	public $buffer =array(
-		're' =>array(
-			'i18n' =>false,
-			'config' =>false),
-		'cache' =>array());
-	private $cache =array(
-		'i18n' =>false,
-		'config' =>false);
+	public $options = ['i18n' => 'zh_cn',
+		'path' => ['c' => 'controllers',
+			'm' => 'models',
+			'l' => 'libraries',
+			'h' => 'helpers',
+			'v' => 'third-parties'],
+		'ext' => ['data' => '',]];
+	public $route = [];
+	public $hook = [];
+	public $controllers = [];
+	private $_reCache = false;
+	private $cache = ['i18n' => false,
+		'config' => false];
+	/**
+	 * @var cache
+	 */
+	private $_cache = null;
 	public function __construct($config){
-		$_path =$config['/'];
-		if (is_string($_path)) $config['/'] =array(
-			$_path);
-		$config['/'][] =___NEXT;
-		$this->options =array_merge($this->options, $config);
-
-		$this->buffer['/'] =realpath($this->options['/'][0]) . '/';
-
-		$this->cache['i18n'] =$this->buffer['cache']['i18n'] =$this->buffer['/'] . $this->_file('i18n', 'cache');
-		$this->cache['config'] =$this->buffer['cache']['config'] =$this->buffer['/'] . $this->_file('config', 'cache');
+		if(isset($config['cache'])){
+			$_cache = $config['cache'];
+			$c = 'cache_'.array_shift($_cache);
+			$n = array_shift($_cache);
+			$this->_cache = new $c($n, $_cache);
+			unset($config['cache']);
+		}
+		$opts = $this->_loadCache('opts');
+		if(empty($opts)){
+			$_path = $config['/'];
+			if(is_string($_path)) $config['/'] = [$_path];
+			$config['/'][] = next::$path;
+			//krsort($config['/']);
+			foreach($config as $key => $value){
+				if(!isset($this->options[$key])) $this->options[$key] = [];
+				$this->options[$key] = is_array($value) ?array_merge($this->options[$key], $value) :$value;
+			}
+		}else $this->options = $opts;
+		$this->cache = $this->_loadCache('caches');
+		if(empty($this->cache)){
+			$this->cache['config'] = isset($config['config']) ?$config['config'] :[];
+			$this->cache['i18n'] = isset($config['i18n']) ?$config['i18n'] :[];
+		}
 	}
 	public function __destruct(){
-		if ($this->buffer['re']['i18n']) next::_savevarcache($this->buffer['cache']['i18n'], $this->cache['i18n']);
-		if ($this->buffer['re']['config']) next::_savevarcache($this->buffer['cache']['config'], $this->cache['config']);
+		$this->_saveCache($this->options, 'opts');
+		if($this->_reCache) $this->_saveCache($this->cache, 'caches');
 	}
-	public function run($route =array()){
-		if (empty($route)) $this->error('core.no-route');
-		$this->route =$route;
-		$this->controll($route);
+	public function _saveCache($var, $type = 'config'){
+		return (is_null($this->_cache)) ?false :$this->_cache->set('cache.'.$type, $var, 60*3);
 	}
-	public function controll($route){
-		$controller =next::import('c' . $route[0]);
-		$this->controllers[$controller] =new $controller($route, $this);
-		unset($this->controllers[$controller]);
+	public function _loadCache($type = 'config'){
+		$r = (is_null($this->_cache)) ?false :$this->_cache->get('cache.'.$type);
+		return empty($r) ?[] :$r;
 	}
-	public function config($word, $params =null){
-		if (strpos($word, '.') == false) return null;
-		if ($this->cache['config'] !== false){
-			if (is_string($this->cache['config'])) if (is_file($this->cache['config'])) $this->cache['config'] =include $this->cache['config'];
-			else $this->cache['config'] =array();
-			if (isset($this->cache['config'][$word])) return $this->cache['config'][$word];
+	public function options(){
+		return $this->options;
+	}
+	public function run($route = []){
+		if(empty($route)) $this->error('core.no-route');
+		$this->route = $route;
+		$this->control($route);
+	}
+	public function control($route){
+		$_controller = 'c'.$route[0];
+		try{
+			$this->controllers[$_controller] = new $_controller($route, $this);
+		}catch(Exception $e){
+			$this->controllers[$_controller] = new controller($route, $this);
 		}
-		$_keys =explode('.', $word, 2);
-		$_key =isset($_keys[1]) ? $_keys[1] : null;
-		$_ns =$_keys[0];
-		$config =array();
-		$f =$this->_file($_ns, 'config');
-		foreach ($this->options['/'] as $_path)
-			if (is_file($_path . $f)) require $_path . $f;
-		if (isset($config[$_ns]) && isset($config[$_ns][$_key])){
-			$this->cache['config'][$word] =$config[$_ns][$_key];
-			$this->buffer['re']['config'] =true;
+		unset($this->controllers[$_controller]);
+	}
+	public function config($word, $params = null){
+		if(strpos($word, '.') == false) return $params;
+		if($this->cache['config'] === false) $this->cache['config'] = $this->_loadCache('config');
+		if(isset($this->cache['config'][$word])) return $this->cache['config'][$word];
+
+		$_keys = explode('.', $word, 2);
+		$_key = isset($_keys[1]) ?$_keys[1] :null;
+		$_ns = $_keys[0];
+		$config = [];
+		$f = $this->_file($_ns, 'config');
+		$_root =$this->options['/'];
+		krsort($_root);
+		foreach($_root as $_path) if(is_file($_path.$f)) require $_path.$f;
+		if(isset($config[$_ns]) && isset($config[$_ns][$_key])){
+			$this->cache['config'][$word] = $config[$_ns][$_key];
+			$this->_reCache = true;
 			return $config[$_ns][$_key];
 		}
-		return null;
+		return $params;
 	}
-	public function i18n($word, $params =array()){
-		if (strpos($word, '.') == false) return $word;
-		if ($this->cache['i18n'] !== false){
-			if (is_string($this->cache['i18n'])) if (is_file($this->cache['i18n'])) $this->cache['i18n'] =include $this->cache['i18n'];
-			else $this->cache['i18n'] =array();
-			if (isset($this->cache['i18n'][$word])) return vsprintf($this->cache['i18n'][$word], $params);
-		}
-		$_keys =explode('.', $word, 2);
-		$_key =isset($_keys[1]) ? $_keys[1] : null;
-		$_ns =$_keys[0];
-		$i18n =array();
-		$f =$this->_file($this->options['i18n'] . '/' . $_ns, 'i18n');
-		foreach ($this->options['/'] as $_path)
-			if (is_file($_path . $f)) require $_path . $f;
-		if (isset($i18n[$_ns]) && isset($i18n[$_ns][$_key])){
-			$this->cache['i18n'][$word] =$i18n[$_ns][$_key];
-			$this->buffer['re']['i18n'] =true;
+	public function i18n($word, $params = []){
+		if(strpos($word, '.') == false) return $word;
+		if($this->cache['i18n'] === false) $this->cache['i18n'] = $this->_loadCache('i18n');
+		if(isset($this->cache['i18n'][$word])) return vsprintf($this->cache['i18n'][$word], $params);
+
+		$_keys = explode('.', $word, 2);
+		$_key = isset($_keys[1]) ?$_keys[1] :null;
+		$_ns = $_keys[0];
+		$i18n = [];
+		$f = $this->_file($this->options['i18n'].'/'.$_ns, 'i18n');
+		$_root =$this->options['/'];
+		krsort($_root);
+		foreach($_root as $_path) if(is_file($_path.$f)) require $_path.$f;
+		if(isset($i18n[$_ns]) && isset($i18n[$_ns][$_key])){
+			$this->cache['i18n'][$word] = $i18n[$_ns][$_key];
+			$this->_reCache = true;
 			return vsprintf($i18n[$_ns][$_key], $params);
 		}
 		return $word;
 	}
 	public function error($err){
 		//NEED: set hook
-		if (isset($this->hook[$err])){return call_user_func_array($this->hook[$err], $this);}
-		$args =func_get_args();
-		$ln =array_shift($args);
+		if(isset($this->hook[$err])){
+			return call_user_func_array($this->hook[$err], [$this, $err]);
+		}
+		$args = func_get_args();
+		$ln = array_shift($args);
 		die($this->i18n($ln, $args));
 	}
-	public function _file($name, $mod =null){
-		if (!empty($mod)){
-			$_path =isset($this->options['dir'][$mod]) ? $this->options['dir'][$mod] : $mod . '/';
-			$_ext =isset($this->options['ext'][$mod]) ? $this->options['ext'][$mod] : '.php';
-			return strtolower($_path . $name . $_ext);
+	public function _file($name, $mod = null){
+		if(!empty($mod)){
+			$_path = isset($this->options['dir'][$mod]) ?$this->options['dir'][$mod] :$mod.'/';
+			$_ext = isset($this->options['ext'][$mod]) ?$this->options['ext'][$mod] :'.php';
+			return strtolower($_path.$name.$_ext);
 		}
-		return $name . '.php';
+		return $name.'.php';
 	}
-	public function _path($name, $mod =null){
-		if (is_file($name)) return $name;
-		$_file =(is_null($mod)) ? $name . '.php' : $this->_file($name, $mod);
-		foreach ($this->options['/'] as $_path)
-			if (is_file($_path . $_file)) return $_path . $_file;
+	public function _path($name, $mod = null, $inherit = true){
+		if(is_file($name)) return $name;
+		$_file = (is_null($mod)) ?$name.'.php' :$this->_file($name, $mod);
+		if(!$inherit || $mod == 'controllers'){//控制器不允许继承
+			$_path =$this->options['/'][0];
+			return (is_file($_path.$_file)) ?$_path.$_file :false;
+		}
+		foreach($this->options['/'] as $_path){
+			if(is_file($_path.$_file)) return $_path.$_file;
+		}
 		return false;
 	}
 }
+
 class webapp extends app{
-	private $status =array(
-		403 =>array("HTTP/1.0 403 Forbidden",'core.403-forbidden'),
-		404 =>array("HTTP/1.0 404 Not Found",'core.404-not-found'));
-	public function run($route =array()){
-		if (empty($route)){
-			$type =isset($this->options['route']) ? $this->options['route'] : 'router';
-			$router =next::import(strpos($type, 'router') ===0 ?$type :'router_'.$type);
-			//$router =next::import((substr($type, -6) !== 'router') ? $type . 'router' : $type);
-			$router =new $router();
-			$route =$router->getRoute();
+	private $_status = [403 => ["HTTP/1.0 403 Forbidden", 'core.status.403'],
+		404 => ["HTTP/1.0 404 Not Found", 'core.status.404']];
+	public function __construct($config){
+		parent::__construct($config);
+		if(!isset($this->options['route'])) $this->options['route'] = 'web';
+		$this->header('NEXT', 'vea 2005-2015');
+		//header_remove('X-Powered-By');
+		//header('NEXT: vea 2005-2015');
+	}
+	public function header($name, $value){
+		if(is_array($name)){
+			if(func_num_args() ==1) foreach($name as $_name=>$_value) header($_name.':'.$_value);
+			else foreach($name as $_name) header($_name.':'.$value);
+		} else header($name.':'.$value);
+	}
+	public function run($route = []){
+		if(empty($route)){
+			$type = isset($this->options['route']) ?$this->options['route'] :'router';
+			$router = strpos($type, 'router') === 0 ?$type :'router_'.$type;
+			$router = new $router();
+			$route = $router->getRoute();
 		}
 		parent::run($route);
 	}
-	public function redirect($Uri ='/', $Info =NULL, $Step =3){
-		header('Refresh: ' . $Step . '; url=' . $Uri);
-		$Info =is_null($Info) ? 'core.redirect' : $Info;
-		die($this->i18n($Info));
+	public function redirect($Uri = null, $Info = null, $Step = 3){
+		if(is_null($Uri)) $Uri = $_SERVER['REQUEST_URI'];
+		if($Step ==0){
+			header('Location: '.$Uri);
+			die();
+		} else{
+			header('Refresh: '.$Step.'; url='.$Uri);
+			$Info = is_null($Info) ?'core.redirect' :$Info;
+			die($this->i18n($Info, $Uri));
+		}
 	}
-	public function status($number, $info =''){
-		$status =isset($this->status[$number]) ? $this->status[$number] : array('HTTP/1.0 ' . $number,$info);
+	public function status($number, $info = ''){
+		$status = isset($this->_status[$number]) ?$this->_status[$number] :['HTTP/1.0 '.$number, $info];
 		header($status[0]);
 		$this->error($status[1], $info);
 	}
-	public function view($File, $Data =array(), $Return =NULL){
-		$_file =$this->_path($File, 'views');
-		if ($_file){
-			extract($Data, EXTR_REFS);
-			ob_start();
-			include ($_file);
-			if ($Return){
-				return ob_get_clean();
-			} else
-				ob_end_flush();
+}
+
+class cliapp extends app{
+	private $status = [403 => ["HTTP/1.0 403 Forbidden", 'core.status.403'],
+		404 => ["HTTP/1.0 404 Not Found", 'core.status.404']];
+	public function __construct($config){
+		parent::__construct($config);
+		if(!isset($this->options['route'])) $this->options['route'] = 'cli';
+	}
+	public function run($route = []){
+		if(empty($route)){
+			$type = isset($this->options['route']) ?$this->options['route'] :'router';
+			$router = strpos($type, 'router') === 0 ?$type :'router_'.$type;
+			$router = new $router();
+			$route = $router->getRoute();
 		}
+		parent::run($route);
+	}
+	public function redirect($Uri = null, $Info = null, $Step = 3){
+		die($Uri.' '.$Info);
+	}
+	public function status($number, $info = ''){
+		$status = isset($this->status[$number]) ?$this->status[$number] :['HTTP/1.0 '.$number, $info];
+		//header($status[0]);
+		$this->error($status[1], $info);
 	}
 }
-class ajaxapp extends webapp{}
-class cliapp extends app{}
